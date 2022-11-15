@@ -60,6 +60,9 @@ def train_model(problem_type, config_version):
     lc_fast = np.zeros(num_blocks)
     lc_slow = np.zeros(num_blocks)
     lc_total = np.zeros(num_blocks)
+    loss_fast = np.zeros(num_blocks)
+    loss_slow = np.zeros(num_blocks)
+    loss_total = np.zeros(num_blocks)
     ct = 0
     for run in range(num_runs):
         print(f'= problem_type {problem_type} Run {run} ========================================')
@@ -131,20 +134,25 @@ def train_model(problem_type, config_version):
                 x = torch.Tensor(dp[0])
                 y_true = torch.Tensor(dp[1])
                 signature = dp[2]
-                model, item_proberror_fast, item_proberror_slow, item_proberror_total = \
-                    fit(
-                        model=model, 
-                        x=x,
-                        y_true=y_true,
-                        signature=signature,
-                        loss_fn=loss_fn,
-                        optimizer=optimizer,
-                        epoch=epoch,
-                        i=i,
-                    )
+                model, \
+                    item_proberror_fast, item_proberror_slow, item_proberror_total, \
+                    loss_value_fast, loss_value_slow, loss_value = \
+                        fit(
+                            model=model, 
+                            x=x,
+                            y_true=y_true,
+                            signature=signature,
+                            loss_fn=loss_fn,
+                            optimizer=optimizer,
+                            epoch=epoch,
+                            i=i,
+                        )
                 lc_fast[epoch] += item_proberror_fast
                 lc_slow[epoch] += item_proberror_slow
                 lc_total[epoch] += item_proberror_total
+                loss_fast[epoch] += loss_value_fast
+                loss_slow[epoch] += loss_value_slow
+                loss_total[epoch] += loss_value
                 ct += 1
         
         # save run-level model per problem type
@@ -161,16 +169,22 @@ def train_model(problem_type, config_version):
     lc_fast = lc_fast / (num_runs * len(dataset))
     lc_slow = lc_slow / (num_runs * len(dataset))
     lc_total = lc_total / (num_runs * len(dataset))
+    loss_fast = loss_fast / (num_runs * len(dataset))
+    loss_slow = loss_slow / (num_runs * len(dataset))
+    loss_total = loss_total / (num_runs * len(dataset))
     np.save(os.path.join(results_path, f'lc_fast_type{problem_type}.npy'), lc_fast)
     np.save(os.path.join(results_path, f'lc_slow_type{problem_type}.npy'), lc_slow)
     np.save(os.path.join(results_path, f'lc_total_type{problem_type}.npy'), lc_total)
+    np.save(os.path.join(results_path, f'loss_fast_type{problem_type}.npy'), loss_fast)
+    np.save(os.path.join(results_path, f'loss_slow_type{problem_type}.npy'), loss_slow)
+    np.save(os.path.join(results_path, f'loss_total_type{problem_type}.npy'), loss_total)
 
 
 if __name__ == '__main__':
     start_time = time.time()
     num_processes = 6
     problem_types = [1, 2, 3, 4, 5, 6]
-    config_version = 'config1'
+    config_version = 'config3'
 
     # train_model(problem_types[1], config_version)
     import multiprocessing
@@ -180,6 +194,7 @@ if __name__ == '__main__':
                     train_model, 
                     args=[problem_type, config_version]
                 )
+        print(results.get())
         pool.close()
         pool.join()
         

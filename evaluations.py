@@ -14,12 +14,6 @@ def examine_lc(config_version,
                 problem_types=[1, 2, 3, 4, 5, 6]):
     """
     Follow sustain impl, we examine learning curves (y-axis is proberror)
-
-    return:
-    -------
-        trapz_areas: An array of scalars which are the areas under the learning curves computed
-                     using the trapzoidal rule.
-        figure (optional): If `plot_learn_curves=True` will plot the learning curves.
     """
     config = load_config(config_version)
     num_runs = config['num_runs']
@@ -53,7 +47,44 @@ def examine_lc(config_version,
     plt.savefig(f'results/{config_version}/lc.png')
     plt.close()
             
-            
+
+def examine_loss(config_version, 
+                problem_types=[1, 2, 3, 4, 5, 6]):
+    """
+    Instead of plotting proberror, we show raw loss.
+    """
+    config = load_config(config_version)
+    num_runs = config['num_runs']
+    num_blocks = config['num_blocks']
+    model_types = ['total', 'fast', 'slow']
+    colors = ['blue', 'orange', 'black', 'green', 'red', 'cyan']
+    fig, axes = plt.subplots(3, 1)
+
+    for subplot_idx in range(len(model_types)):
+        model_type = model_types[subplot_idx]
+
+        for idx in range(len(problem_types)):
+            problem_type = problem_types[idx]
+
+            lc_file = f'results/{config_version}/loss_{model_type}_type{problem_type}.npy'
+            lc = np.load(lc_file)[:num_blocks]
+
+            axes[subplot_idx].errorbar(
+                range(lc.shape[0]), 
+                lc, 
+                color=colors[idx],
+                label=f'Type {problem_type}',
+            )
+            axes[subplot_idx].set_title(f'{model_type}')
+            axes[subplot_idx].set_ylabel('loss')
+            axes[-1].set_xlabel('epochs')
+    
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'results/{config_version}/loss.png')
+    plt.close()
+
+
 def examine_recruited_clusters_n_attn(config_version, canonical_runs_only=True):
     """
     Record the runs that produce canonical solutions
@@ -114,5 +145,7 @@ def examine_recruited_clusters_n_attn(config_version, canonical_runs_only=True):
 
 
 if __name__ == '__main__':
-    examine_lc(config_version='config1')
-    examine_recruited_clusters_n_attn(config_version='config1')
+    config_version = 'config3'
+    examine_lc(config_version)
+    examine_loss(config_version)
+    examine_recruited_clusters_n_attn(config_version)
