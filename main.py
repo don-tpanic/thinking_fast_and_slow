@@ -57,9 +57,9 @@ def train_model(problem_type, config_version):
         os.makedirs(results_path)
     np.random.seed(random_seed)
     # --------------------------------------------------------------------------
-    lc_fast = np.empty(num_blocks)
-    lc_slow = np.empty(num_blocks)
-    lc_total = np.empty(num_blocks)
+    lc_fast = np.zeros(num_blocks)
+    lc_slow = np.zeros(num_blocks)
+    lc_total = np.zeros(num_blocks)
     ct = 0
     for run in range(num_runs):
         print(f'= problem_type {problem_type} Run {run} ========================================')
@@ -130,7 +130,7 @@ def train_model(problem_type, config_version):
                 x = torch.Tensor(dp[0])
                 y_true = torch.Tensor(dp[1])
                 signature = dp[2]
-                model, item_proberror_fast, item_proberror_slow, item_proberror = \
+                model, item_proberror_fast, item_proberror_slow, item_proberror_total = \
                     fit(
                         model=model, 
                         x=x,
@@ -143,7 +143,7 @@ def train_model(problem_type, config_version):
                     )
                 lc_fast[epoch] += item_proberror_fast
                 lc_slow[epoch] += item_proberror_slow
-                lc_total[epoch] += item_proberror
+                lc_total[epoch] += item_proberror_total
                 ct += 1
         
         # save run-level model per problem type
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     problem_types = [1, 2, 3, 4, 5, 6]
     config_version = 'config1'
 
-    # train_model(problem_types[0], config_version)
+    # train_model(problem_types[1], config_version)
     import multiprocessing
     with multiprocessing.Pool(num_processes) as pool:
         for problem_type in problem_types:

@@ -63,5 +63,5 @@ class FastSlow(nn.Module):
     def forward(self, inp, epoch, i, signature, y_true):
         y_pred_fast = self.ClusteringModel(inp, epoch, i, signature, y_true)
         y_pred_slow = self.NeuralNetwork(inp)
-        y_pred = torch.add(y_pred_fast, y_pred_slow)
-        return y_pred_fast, y_pred_slow, y_pred
+        y_pred_total = torch.add(y_pred_fast, y_pred_slow)
+        return y_pred_fast, y_pred_slow, y_pred_total
