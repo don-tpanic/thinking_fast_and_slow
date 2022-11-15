@@ -10,8 +10,10 @@ from train import fit
 from utils import load_config, load_data
 torch.autograd.set_detect_anomaly(True)
 
+import wandb
+
 """
-Main executation script.
+Main execution script.
 """
 
 def train_model(problem_type, config_version):
@@ -180,13 +182,35 @@ def train_model(problem_type, config_version):
     np.save(os.path.join(results_path, f'loss_total_type{problem_type}.npy'), loss_total)
 
 
+def log_results(config_version):
+    from evaluations import examine_lc
+
+    # will save locally.
+    examine_lc(config_version)
+
+    # log files to wandb
+    results_path = os.path.join('results', config_version)
+    wandb.log(
+        {"lc": wandb.Image(f"{results_path}/lc.png")}
+    )
+
+
 if __name__ == '__main__':
     start_time = time.time()
     num_processes = 6
     problem_types = [1, 2, 3, 4, 5, 6]
-    config_version = 'config3'
+    config_version = 'config1'
+    config = load_config(config_version)
+    disable_wandb = False
 
-    # train_model(problem_types[1], config_version)
+    if not disable_wandb:
+        wandb.init(
+            project="thinking_fast_and_slow",
+            entity="robandken",
+            config=config,
+        )
+        wandb.run.name = f'{config_version}'
+
     import multiprocessing
     with multiprocessing.Pool(num_processes) as pool:
         for problem_type in problem_types:
@@ -197,6 +221,10 @@ if __name__ == '__main__':
         print(results.get())
         pool.close()
         pool.join()
-        
+    
+    # log results to wandb
+    if not disable_wandb:
+        log_results(config_version)
+
     duration = time.time() - start_time
     print(f'duration = {duration}s')
