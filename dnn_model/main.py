@@ -33,7 +33,7 @@ def train_model(problem_type, config_version, save_model=False):
         os.makedirs(results_path)
     np.random.seed(random_seed)
     # --------------------------------------------------------------------------
-    lc = np.empty(num_blocks)
+    lc = np.zeros(num_blocks)
     ct = 0
     
     for run in range(num_runs):
