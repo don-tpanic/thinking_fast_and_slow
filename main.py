@@ -120,8 +120,9 @@ def train_model(problem_type, config_version):
         for epoch in range(num_blocks):
             # load and shuffle data
             dataset = load_data(problem_type)
-            run2indices = np.load(f'run2indices_num_runs={num_runs}.npy')
-            shuffled_indices = run2indices[run][epoch]
+            # run2indices = np.load(f'run2indices_num_runs={num_runs}.npy')
+            # shuffled_indices = run2indices[run][epoch]
+            shuffled_indices = np.random.permutation(len(dataset))
             shuffled_dataset = dataset[shuffled_indices]
             # print('[Check] shuffled_indices', shuffled_indices)
             # each epoch trains on all items
