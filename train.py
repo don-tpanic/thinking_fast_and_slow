@@ -2,7 +2,7 @@ import torch
 
 
 def fit(model, x, y_true, signature, 
-        loss_fn, optimizer, 
+        # loss_fn, optimizer, 
         epoch, i,
         ):
     """
@@ -14,9 +14,9 @@ def fit(model, x, y_true, signature,
     )
 
     # TODO: careful if there is momentum, loss_fn can not be reused for different branches.
-    loss_value_fast = loss_fn(y_pred_fast, y_true)
-    loss_value_slow = loss_fn(y_pred_slow, y_true)
-    loss_value = loss_fn(y_pred_total, y_true)
+    loss_value_fast = model.loss_fn(y_pred_fast, y_true)
+    loss_value_slow = model.loss_fn(y_pred_slow, y_true)
+    loss_value = model.loss_fn(y_pred_total, y_true)
 
     # Convert logits to proba and then to proberror used in SUSTAIN.
     y_pred_fast = torch.nn.functional.softmax(y_pred_fast, dim=1)
@@ -26,7 +26,7 @@ def fit(model, x, y_true, signature,
     item_proberror_slow =  1. - torch.max(y_pred_slow * y_true)
     item_proberror_total = 1. - torch.max(y_pred_total * y_true)
     # Update trainable parameters.
-    update_params(model, loss_value, optimizer)
+    update_params(model, loss_value, model.optim)
     return model, \
         item_proberror_fast, item_proberror_slow, item_proberror_total, \
         loss_value_fast, loss_value_slow, loss_value
