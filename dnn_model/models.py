@@ -15,6 +15,8 @@ class NeuralNetwork(nn.Module):
         self.bias = True 
         self.dropout = config['dropout']
         self.n_classes= 2
+        self.lr_dnn = config['lr_dnn']
+        self.mom = config['mom']
 
         if self.networks_depth == 3:  # TODO: too much hardcoding
             sizes = [
@@ -35,6 +37,17 @@ class NeuralNetwork(nn.Module):
             )
         self.layers = nn.ModuleList(LayerCollections)
         self.dropout = nn.Dropout(self.dropout)
+
+        # set optimizer and loss fn
+        self.custom_lr_list = []
+        self.custom_lr_list.append(
+            {'params': self.parameters(), 
+             'lr': config['lr_dnn']}
+        )
+        if config['optim'] == 'sgd':
+            self.optim = torch.optim.SGD(self.custom_lr_list, momentum=self.mom)
+        if config['loss_fn'] == 'bcelogits':
+            self.loss_fn = torch.nn.BCEWithLogitsLoss()
 
     def forward(self, x):
         for i_l, layer in enumerate(self.layers):

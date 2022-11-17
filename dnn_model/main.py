@@ -16,8 +16,6 @@ Main executation script.
 
 def train_model(problem_type, config_version, save_model=False):
     config = load_config(config_version)
-    lr=config['lr']
-    mom=config['mom']
     num_runs=config['n_sims']
     num_blocks=config['n_epochs']
     random_seed=config['random_seed']
@@ -34,9 +32,6 @@ def train_model(problem_type, config_version, save_model=False):
         
         model = models.NeuralNetwork(config=config)
 
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=mom)
-        loss_fn = nn.BCEWithLogitsLoss()
-
         for epoch in range(num_blocks):
             # load and shuffle data
             dataset = load_data(problem_type)
@@ -48,21 +43,10 @@ def train_model(problem_type, config_version, save_model=False):
                 dp = shuffled_dataset[i]
                 x = torch.Tensor(dp[0])
                 y_true = torch.Tensor(dp[1])
-                # signature = dp[2]
                 model, item_proberror = fit(
                     model=model,
                     x=x, 
                     y_true=y_true, 
-                    # signature=signature, 
-                    loss_fn=loss_fn,
-                    optimizer=optimizer,
-                    lr=lr,
-                    epoch=epoch,
-                    i=i,
-                    problem_type=problem_type,
-                    run=run,
-                    # thr=thr,
-                    config_version=config_version,
                 )
                 lc[epoch] += item_proberror
                 ct += 1
