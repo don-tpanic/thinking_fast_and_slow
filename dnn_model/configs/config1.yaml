@@ -1,6 +1,6 @@
 config_version: config1
 act_func: relu
-lr: 0.0075
+lr_dnn: 0.0075
 n_units: 25   # hidden layer size
 mom: 0.3
 dropout: 0
@@ -10,3 +10,5 @@ n_epochs: 350
 input_size: 3
 output_size: 2
 random_seed: 999
+optim: sgd
+loss_fn: bcelogits
