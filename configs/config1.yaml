@@ -1,3 +1,9 @@
+# --- overall ---
+optim: sgd
+loss_fn: bcelogits
+fast: clustering
+slow: dnn
+
 # --- clustering model config ---
 max_num_clusters: 8
 in_features: 3
