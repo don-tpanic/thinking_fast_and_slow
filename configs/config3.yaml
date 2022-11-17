@@ -1,3 +1,9 @@
+# --- overall ---
+optim: sgd
+loss_fn: bcelogits
+fast: clustering
+slow: dnn
+
 # --- clustering model config ---
 max_num_clusters: 8
 in_features: 3
@@ -13,7 +19,7 @@ center_lr_multiplier: 1.0
 config_version: config3
 from_logits: true
 lr_clustering: 0.1
-num_blocks: 32
+num_blocks: 350
 num_clusters: 8
 num_runs: 50
 q: 1
