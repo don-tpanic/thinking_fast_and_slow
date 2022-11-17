@@ -16,17 +16,10 @@ Main executation script.
 
 def train_model(problem_type, config_version, save_model=False):
     config = load_config(config_version)
-
-    act_func=config['act_func']
     lr=config['lr']
-    n_units=config['n_units']   # hidden layer size
     mom=config['mom']
-    dropout=config['dropout']
-    networks_depth=config['networks_depth']
     num_runs=config['n_sims']
     num_blocks=config['n_epochs']
-    input_size=config['input_size']
-    output_size=config['output_size']
     random_seed=config['random_seed']
     results_path = f'results/{config_version}'
     if not os.path.exists(results_path):
@@ -39,15 +32,7 @@ def train_model(problem_type, config_version, save_model=False):
     for run in range(num_runs):
         print(f'= problem_type {problem_type} Run {run} ========================================')
         
-        model = models.NeuralNetwork(
-            input_size=input_size,
-            output_size=output_size,
-            networks_depth=networks_depth,
-            n_units=n_units,
-            act_func=act_func,
-            dropout=dropout,
-            bias=True,
-        )
+        model = models.NeuralNetwork(config=config)
 
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=mom)
         loss_fn = nn.BCEWithLogitsLoss()

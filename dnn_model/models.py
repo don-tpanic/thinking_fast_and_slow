@@ -4,33 +4,37 @@ import torch.nn as nn
 
 class NeuralNetwork(nn.Module):
     def __init__(
-            self, 
-            input_size,
-            output_size,
-            n_units,
-            networks_depth,
-            act_func=None, 
-            bias=True, 
-            dropout=0,
-            n_classes=2, 
-            device=torch.device('cpu')
-        ):
-
+        self, config, device=torch.device('cpu')):
         super().__init__()
 
-        if networks_depth == 3:  # TODO: too much hardcoding
-            sizes = [input_size, n_units, n_units, n_units, output_size]
+        self.input_size = config['input_size']
+        self.output_size = config['output_size']
+        self.n_units = config['n_units']
+        self.networks_depth = config['networks_depth']
+        self.act_func = config['act_func']
+        self.bias = True 
+        self.dropout = config['dropout']
+        self.n_classes= 2
 
-        if act_func == 'relu':
+        if self.networks_depth == 3:  # TODO: too much hardcoding
+            sizes = [
+                self.input_size, 
+                self.n_units, 
+                self.n_units, 
+                self.n_units, 
+                self.output_size
+            ]
+
+        if self.act_func == 'relu':
             self.act_func = nn.ReLU()
 
         LayerCollections = []
         for in_f, out_f in zip(sizes, sizes[1:]):
             LayerCollections.append(
-                nn.Linear(in_f, out_f, bias=bias)
+                nn.Linear(in_f, out_f, bias=self.bias)
             )
         self.layers = nn.ModuleList(LayerCollections)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(self.dropout)
 
     def forward(self, x):
         for i_l, layer in enumerate(self.layers):
