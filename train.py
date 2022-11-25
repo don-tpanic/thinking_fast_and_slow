@@ -36,7 +36,7 @@ def update_params(model, loss_value, optimizer):
     """
     Update trainable params in the model.
     """
-    print('[Check] ... update_params ...')
+    # print('[Check] ... update_params ...')
     optimizer.zero_grad()
     loss_value.backward()
     optimizer.step()
