@@ -36,16 +36,26 @@ def examine_lc(config_version,
                 lc, 
                 color=colors[idx],
                 label=f'Type {problem_type}',
-            )
-            axes[subplot_idx].set_title(f'{model_type}')
-            axes[subplot_idx].set_ylim(0, 0.7)
-            axes[subplot_idx].set_ylabel('proberror')
-            axes[-1].set_xlabel('epochs')
+            )        
+
+        axes[subplot_idx].set_ylim(0, 0.7)
+        axes[subplot_idx].set_ylabel('proberror')
+        axes[-1].set_xlabel('epochs')
+        axes[-1].legend()
+
+        if model_type == 'fast':
+            lr_attn = config['lr_clustering'] * config['high_attn_lr_multiplier']
+            lr_asso = config['lr_clustering'] * config['asso_lr_multiplier']
+            lr_center = config['lr_clustering'] * config['center_lr_multiplier']
+            axes[subplot_idx].set_title(f'{model_type}, lr attn: {lr_attn:.2f}, asso: {lr_asso:.2f}, center: {lr_center:.2f}')
+
+        elif model_type == 'slow':
+            lr_dnn = config['lr_dnn']
+            axes[subplot_idx].set_title(f'{model_type}, lr dnn: {lr_dnn:.2f}')
     
-    plt.legend()
     plt.tight_layout()
     plt.savefig(f'results/{config_version}/lc.png')
-    plt.close()
+    return plt
             
 
 def examine_loss(config_version, 
