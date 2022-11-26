@@ -1,12 +1,13 @@
 import os
 import time
-
 import numpy as np
+import multiprocessing
 import torch 
 from torch import nn
 
 import models
 from train import fit
+from evaluations import examine_lc
 from utils import load_config, load_data
 torch.autograd.set_detect_anomaly(True)
 
@@ -18,6 +19,7 @@ Main execution script.
 
 def train_model(problem_type, config_version):
     config = load_config(config_version)
+    print(f'[Check] config: {config_version}')
     random_seed=config['random_seed']
     num_blocks=config['num_blocks']
     num_runs=config['num_runs']
@@ -92,49 +94,83 @@ def train_model(problem_type, config_version):
     np.save(os.path.join(results_path, f'loss_total_type{problem_type}.npy'), loss_total)
 
 
+def train_model_across_types(config_version):
+    config = load_config(config_version)
+    if not disable_wandb:
+        run = wandb.init(
+            project="thinking_fast_and_slow",
+            entity="robandken",
+            config=config,
+            reinit=True,
+        )
+        wandb.run.name = f'{config_version}'
+
+    for problem_type in [1, 2, 3, 4, 5, 6]:
+        train_model(problem_type, config_version)
+    
+    # log results to wandb
+    log_results(config_version)
+    run.finish()
+
+
 def log_results(config_version):
-    from evaluations import examine_lc
-
+    print(f'[Check] logging results..')
     # will save locally.
-    examine_lc(config_version)
+    plt = examine_lc(config_version)
 
-    # log files to wandb
-    results_path = os.path.join('results', config_version)
-    wandb.log(
-        {"lc": wandb.Image(f"{results_path}/lc.png")}
-    )
+    # log figures to wandb
+    wandb.log({"lc": plt})
+    print(f'[Check] done logging results.')
 
 
 if __name__ == '__main__':
     start_time = time.time()
-    num_processes = 6
-    problem_types = [1, 2, 3, 4, 5, 6]
-    config_version = 'config1'
-    config = load_config(config_version)
     disable_wandb = False
+    single_config = False
+    multiple_configs = True
 
-    if not disable_wandb:
-        wandb.init(
-            project="thinking_fast_and_slow",
-            entity="robandken",
-            config=config,
-        )
-        wandb.run.name = f'{config_version}'
+    if single_config:
+        num_processes = 6
+        problem_types = [1, 2, 3, 4, 5, 6]
+        config_version = 'config6'
+        config = load_config(config_version)
 
-    import multiprocessing
-    with multiprocessing.Pool(num_processes) as pool:
-        for problem_type in problem_types:
-            results = pool.apply_async(
-                    train_model, 
-                    args=[problem_type, config_version]
-                )
-        print(results.get())
-        pool.close()
-        pool.join()
-    
-    # log results to wandb
-    if not disable_wandb:
-        log_results(config_version)
+        if not disable_wandb:
+            wandb.init(
+                project="thinking_fast_and_slow",
+                entity="robandken",
+                config=config,
+            )
+            wandb.run.name = f'{config_version}'
 
+        import multiprocessing
+        with multiprocessing.Pool(num_processes) as pool:
+            for problem_type in problem_types:
+                results = pool.apply_async(
+                        train_model, 
+                        args=[problem_type, config_version]
+                    )
+            print(results.get())
+            pool.close()
+            pool.join()
+        
+        # log results to wandb
+        if not disable_wandb:
+            log_results(config_version)
+
+    elif multiple_configs:
+        # one process is one config over 6 types
+        num_processes = 20
+        config_versions = [f'config{i}' for i in range(6, 23)]
+        with multiprocessing.Pool(num_processes) as pool:
+            for config_version in config_versions:
+                results = pool.apply_async(
+                        train_model_across_types, 
+                        args=[config_version]
+                    )
+
+            pool.close()
+            pool.join()
+        
     duration = time.time() - start_time
     print(f'duration = {duration}s')
