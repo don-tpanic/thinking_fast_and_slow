@@ -35,15 +35,13 @@ class ClusteringModel(nn.Module):
         self.high_attn_lr_multiplier = config['high_attn_lr_multiplier']
         self.asso_lr_multiplier = config['asso_lr_multiplier']
 
-        self.DistanceLayerCollections = nn.ModuleDict()
-        for cluster_index in range(self.max_num_clusters):
-            self.DistanceLayerCollections[
-                f'cluster{cluster_index}'] = layers.Distance(
-                    self.in_features, 
-                    self.out_features, 
-                    r=self.r, 
-                    bias=False
-            )
+        self.Distance = layers.Distance(
+            self.in_features,
+            self.out_features,
+            self.max_num_clusters,
+            r=self.r,
+            bias=False,
+        )
 
         self.DimensionWiseAttnLayer = layers.DimWiseAttention(
             self.in_features, self.out_features, bias=False,
@@ -54,8 +52,6 @@ class ClusteringModel(nn.Module):
             self.in_features, self.out_features, 
             r=self.r, q=self.q, specificity=self.specificity,
         )
-
-        self.Concat = torch.cat
 
         self.MaskNonRecruit = layers.Mask(
             in_features=self.max_num_clusters, 
@@ -88,14 +84,13 @@ class ClusteringModel(nn.Module):
         )
 
         self.custom_lr_list = []
-        # adjust center lr
-        for cluster_index in range(self.max_num_clusters):
-            self.custom_lr_list.append(
-                {'params': \
-                    self.DistanceLayerCollections[f'cluster{cluster_index}'].parameters(), 
-                 'lr': \
-                    self.lr_clustering * self.center_lr_multiplier}
-            )
+
+        self.custom_lr_list.append(
+            {'params': \
+                self.Distance.parameters(), 
+             'lr': \
+                self.lr_clustering * self.center_lr_multiplier}
+        )
 
         # adjust attn lr
         self.custom_lr_list.append(
@@ -127,9 +122,10 @@ class ClusteringModel(nn.Module):
             center: current trial item.
             signature: current trial item unique ID.
         """
-        # print(f'[Check] recruit cluster signature={signature}')
+        print(f'[Check] recruit cluster signature={signature}')
         # Center on that item
-        self.DistanceLayerCollections[f'cluster{signature}'].weight.data = center
+        # self.DistanceLayerCollections[f'cluster{signature}'].weight.data = center
+        self.Distance.weight.data[signature, :] = center
         # A cluster is permanently recruited -- set mask to 1.
         self.MaskNonRecruit.weight.data[:, signature] = 1.
 
@@ -138,15 +134,10 @@ class ClusteringModel(nn.Module):
         Given some input, make a prediction, and output
         cluster activations for support evaluation if neccessary.
         """
-        H_list = []
-        for cluster_index in range(self.max_num_clusters):
-            dist = self.DistanceLayerCollections[f'cluster{cluster_index}'](inp)
-            attn_dist = self.DimensionWiseAttnLayer(dist)
-            H_j_act = self.ClusterActvLayer(attn_dist)
-            H_list.append(H_j_act)
-
-        # concat cluster outputs
-        H_concat = self.Concat(H_list, dim=1)
+        # (8, 3)
+        dim_dist = self.Distance(inp)
+        attn_dim_dist = self.DimensionWiseAttnLayer(dim_dist)
+        H_concat = self.ClusterActvLayer(attn_dim_dist)
 
         # mask out non-recruit clusters
         clusters_actv = self.MaskNonRecruit(H_concat)
@@ -156,7 +147,7 @@ class ClusteringModel(nn.Module):
        
         # pass on competed clusters actvs for soft wta.
         clusters_actv_softwta, _ = self.SoftWTA(clusters_actv_competed)
-        # print(f'clusters_actv : {clusters_actv}, clusters_actv_competed : {clusters_actv_competed}, clusters_actv_softwta : {clusters_actv_softwta}')
+        print(f'clusters_actv : {clusters_actv}, clusters_actv_competed : {clusters_actv_competed}, clusters_actv_softwta : {clusters_actv_softwta}')
 
         # produce output probabilities
         y_pred = self.ClsLayer(clusters_actv_softwta)
@@ -167,7 +158,7 @@ class ClusteringModel(nn.Module):
         Compute support.
         """
         totalSupport = 0
-        # print(f'[Check] Evaluating totalSupport')
+        print(f'[Check] Evaluating totalSupport')
         assoc_weights = self.ClsLayer.weight.data
         totalSupport = 0
         # NOTE: nonzero_clusters_indices is 2D (batch, actv)
@@ -179,7 +170,7 @@ class ClusteringModel(nn.Module):
             totalSupport += support * single_cluster_actv
 
         totalSupport = totalSupport / torch.sum(clusters_actv_softwta)
-        # print(f'[Check] totalSupport = {totalSupport}')
+        print(f'[Check] totalSupport = {totalSupport}')
         return totalSupport
 
     def forward(self, inp, epoch, i, signature, y_true):

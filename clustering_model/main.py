@@ -76,7 +76,7 @@ if __name__ == '__main__':
     problem_types = [1, 2, 3, 4, 5, 6]
     config_version = 'config1'
     
-    train_model(problem_type=1, config_version=config_version)
+    # train_model(problem_type=1, config_version=config_version)
     import multiprocessing
     with multiprocessing.Pool(num_processes) as pool:
         for problem_type in problem_types:

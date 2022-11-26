@@ -9,6 +9,12 @@ Custom model layer definitions
 
 class Distance(nn.Module):
     """
+    V2: Instead of being called once for every cluster, we call it once for all clusters.
+    Which means we would avoid using the layer collection in V1, which could be more clean 
+    especially when we are going to build the multiunit version where there are going to 
+    be tens of thousands of units (i.e. clusters), so we wouldn't have a collection of that 
+    many individually defined Distance layers.
+    
     Trainable:
     ----------
         - self.weight, meaning: cluster centers
@@ -18,7 +24,7 @@ class Distance(nn.Module):
     out_features: int
     weight: Tensor
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = True,
+    def __init__(self, in_features: int, out_features: int, max_num_clusters, bias: bool = True,
                  device=None, dtype=None, 
                  r: int = 2,
                  trainable: bool = True,
@@ -28,7 +34,7 @@ class Distance(nn.Module):
 
         self.in_features = in_features
         self.out_features = out_features
-        self.weight = Parameter(torch.empty((1, in_features), **factory_kwargs))
+        self.weight = Parameter(torch.empty((max_num_clusters, in_features), **factory_kwargs)) 
         self.register_parameter('bias', None)
         self.reset_parameters()
         self.r = r
@@ -38,6 +44,7 @@ class Distance(nn.Module):
         Initialization of a cluster's dimensional centers. Do not matter here
         because cluster recruitment will replace whatever the initializations are.
         """
+        # TODO: in multiunit, this will be init as random.
         nn.init.constant_(self.weight, 0.5)   # 0.5 is really just placeholder for cluster centers
 
     def forward(self, input: Tensor) -> Tensor:
@@ -49,7 +56,6 @@ class Distance(nn.Module):
             torch.clip(
                 (input - self.weight).pow(self.r),
                 min=1e-6)
-        assert output.shape == input.shape
         return output
 
     def extra_repr(self) -> str:
@@ -60,6 +66,8 @@ class Distance(nn.Module):
 
 class DimWiseAttention(nn.Module):    
     """
+    V2: Instead of being called once for every cluster, we call it once because the V2 Distance 
+        returns dimensional distances for all clusters.
     Apply dimension-wise attention to distances between input and cluster centers.
 
     Trainable:
@@ -107,8 +115,9 @@ class DimWiseAttention(nn.Module):
             # then apply sum-to-one constraint
             self.weight.data = self.weight.data / self.weight.data.sum()
 
+        # input shape (8, 3)
+        # weight shape (1, 3)
         output = torch.multiply(input, self.weight)
-        assert output.shape == input.shape
         return output
 
     def extra_repr(self) -> str:
@@ -119,6 +128,9 @@ class DimWiseAttention(nn.Module):
 
 class ClusterActivation(nn.Module):
     """
+    V2: Instead of being called once for every cluster, we call it once because the V2
+        Attention returns dimensional attention for all clusters.
+
     Compute overall activation of a cluster after attention.
 
     Trainable:
@@ -152,7 +164,7 @@ class ClusterActivation(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         # dimension-wise summation
-        sum_of_distances = torch.sum(input, axis=1, keepdim=True)
+        sum_of_distances = torch.sum(input, axis=1)
         # print(f"sum_of_distances.shape: {sum_of_distances.shape}")
 
         # q/r powered sum and multiply specificity
