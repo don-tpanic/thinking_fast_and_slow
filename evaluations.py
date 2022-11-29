@@ -45,11 +45,15 @@ def examine_lc(config_version,
 
         if model_type == 'fast':
             config_ = config['fast_config']
-            lr_attn = config_['lr_clustering'] * config_['high_attn_lr_multiplier']
-            lr_asso = config_['lr_clustering'] * config_['asso_lr_multiplier']
-            lr_center = config_['lr_clustering'] * config_['center_lr_multiplier']
-            axes[subplot_idx].set_title(f'{model_type}, lr attn: {lr_attn:.2f}, asso: {lr_asso:.2f}, center: {lr_center:.2f}')
 
+            if config['fast'] == 'clustering':
+                lr_attn = config_['lr_clustering'] * config_['high_attn_lr_multiplier']
+                lr_asso = config_['lr_clustering'] * config_['asso_lr_multiplier']
+                lr_center = config_['lr_clustering'] * config_['center_lr_multiplier']
+                axes[subplot_idx].set_title(f'{model_type}, lr attn: {lr_attn:.2f}, asso: {lr_asso:.2f}, center: {lr_center:.2f}')
+            elif config['fast'] == 'multiunit_clustering':
+                pass # TODO: what to track during sweep?
+        
         elif model_type == 'slow':
             config_ = config['slow_config']
             lr_dnn = config_['lr_dnn']
@@ -157,7 +161,7 @@ def examine_recruited_clusters_n_attn(config_version, canonical_runs_only=True):
 
 
 if __name__ == '__main__':
-    config_version = 'config3'
+    config_version = 'config23'
     examine_lc(config_version)
     # examine_loss(config_version)
     # examine_recruited_clusters_n_attn(config_version)
