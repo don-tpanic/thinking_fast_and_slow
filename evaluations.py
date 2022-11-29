@@ -44,13 +44,15 @@ def examine_lc(config_version,
         axes[-1].legend()
 
         if model_type == 'fast':
-            lr_attn = config['lr_clustering'] * config['high_attn_lr_multiplier']
-            lr_asso = config['lr_clustering'] * config['asso_lr_multiplier']
-            lr_center = config['lr_clustering'] * config['center_lr_multiplier']
+            config_ = config['fast_config']
+            lr_attn = config_['lr_clustering'] * config_['high_attn_lr_multiplier']
+            lr_asso = config_['lr_clustering'] * config_['asso_lr_multiplier']
+            lr_center = config_['lr_clustering'] * config_['center_lr_multiplier']
             axes[subplot_idx].set_title(f'{model_type}, lr attn: {lr_attn:.2f}, asso: {lr_asso:.2f}, center: {lr_center:.2f}')
 
         elif model_type == 'slow':
-            lr_dnn = config['lr_dnn']
+            config_ = config['slow_config']
+            lr_dnn = config_['lr_dnn']
             axes[subplot_idx].set_title(f'{model_type}, lr dnn: {lr_dnn:.2f}')
     
     plt.tight_layout()
@@ -157,5 +159,5 @@ def examine_recruited_clusters_n_attn(config_version, canonical_runs_only=True):
 if __name__ == '__main__':
     config_version = 'config3'
     examine_lc(config_version)
-    examine_loss(config_version)
-    examine_recruited_clusters_n_attn(config_version)
+    # examine_loss(config_version)
+    # examine_recruited_clusters_n_attn(config_version)
