@@ -1,5 +1,6 @@
 import os
 import time
+import argparse
 import numpy as np
 import multiprocessing
 import torch 
@@ -8,7 +9,7 @@ from torch import nn
 import models
 from train import fit
 from evaluations import examine_lc
-from utils import load_config, load_data
+from utils import load_config, load_data, str2bool
 torch.autograd.set_detect_anomaly(True)
 
 import wandb
@@ -96,7 +97,7 @@ def train_model(problem_type, config_version):
 
 def train_model_across_types(config_version):
     config = load_config(config_version)
-    if not disable_wandb:
+    if args.logging:
         run = wandb.init(
             project="thinking_fast_and_slow",
             entity="robandken",
@@ -125,25 +126,31 @@ def log_results(config_version):
 
 if __name__ == '__main__':
     start_time = time.time()
-    problem_types = [6]
-    disable_wandb = False
-    single_config = False
-    multiple_configs = True
+    problem_types = [1, 2, 3, 4, 5, 6]
 
-    if single_config:
-        num_processes = 6
-        config_version = 'config6'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--logging', dest='logging', default=True, type=str2bool)
+    parser.add_argument('-c', '--config', dest='config', type=str, default=None)
+    parser.add_argument('-b', '--begin', dest='begin', type=int, default=None)
+    parser.add_argument('-e', '--end', dest='end', type=int, default=None)
+    args = parser.parse_args()
+
+    # just run a single config
+    if args.config:
+        config_version = args.config
         config = load_config(config_version)
 
-        if not disable_wandb:
+        if args.logging:
             wandb.init(
                 project="thinking_fast_and_slow",
                 entity="robandken",
                 config=config,
+                reinit=True,
             )
             wandb.run.name = f'{config_version}'
 
         import multiprocessing
+        num_processes = len(problem_types)
         with multiprocessing.Pool(num_processes) as pool:
             for problem_type in problem_types:
                 results = pool.apply_async(
@@ -155,14 +162,14 @@ if __name__ == '__main__':
             pool.join()
         
         # log results to wandb
-        if not disable_wandb:
+        if args.logging:
             log_results(config_version)
 
-    elif multiple_configs:
+    # run a range of configs (hparams sweep)
+    elif args.begin and args.end:
         # one process is one config over 6 types
-        num_processes = 20
-        # config_versions = [f'config{i}' for i in range(6, 23)]
-        config_versions = ['config13']
+        config_versions = [f'config{i}' for i in range(args.begin, args.end+1)]
+        num_processes = len(config_versions)
         with multiprocessing.Pool(num_processes) as pool:
             for config_version in config_versions:
                 results = pool.apply_async(
