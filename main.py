@@ -105,7 +105,7 @@ def train_model_across_types(config_version):
         )
         wandb.run.name = f'{config_version}'
 
-    for problem_type in [1, 2, 3, 4, 5, 6]:
+    for problem_type in problem_types:
         train_model(problem_type, config_version)
     
     # log results to wandb
@@ -125,13 +125,13 @@ def log_results(config_version):
 
 if __name__ == '__main__':
     start_time = time.time()
+    problem_types = [6]
     disable_wandb = False
     single_config = False
     multiple_configs = True
 
     if single_config:
         num_processes = 6
-        problem_types = [1, 2, 3, 4, 5, 6]
         config_version = 'config6'
         config = load_config(config_version)
 
@@ -161,7 +161,8 @@ if __name__ == '__main__':
     elif multiple_configs:
         # one process is one config over 6 types
         num_processes = 20
-        config_versions = [f'config{i}' for i in range(6, 23)]
+        # config_versions = [f'config{i}' for i in range(6, 23)]
+        config_versions = ['config13']
         with multiprocessing.Pool(num_processes) as pool:
             for config_version in config_versions:
                 results = pool.apply_async(

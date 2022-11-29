@@ -16,7 +16,10 @@ def fit(model, x, y_true, signature,
     # TODO: careful if there is momentum, loss_fn can not be reused for different branches.
     loss_value_fast = model.loss_fn(y_pred_fast, y_true)
     loss_value_slow = model.loss_fn(y_pred_slow, y_true)
+
+    print(f'[Check] y_pred_total: {y_pred_total}')
     loss_value = model.loss_fn(y_pred_total, y_true)
+    print(f'[Check] loss_value: {loss_value}')
 
     # Convert logits to proba and then to proberror used in SUSTAIN.
     y_pred_fast = torch.nn.functional.softmax(y_pred_fast, dim=1)
@@ -41,5 +44,5 @@ def update_params(model, loss_value, optimizer):
     loss_value.backward()
     optimizer.step()
     # print('\n\n updated params \n\n')
-    # for param in model.parameters():
-    #     print(param, param.grad)
+    for param in model.parameters():
+        print(param, param.grad)
