@@ -122,7 +122,7 @@ class ClusteringModel(nn.Module):
             center: current trial item.
             signature: current trial item unique ID.
         """
-        print(f'[Check] recruit cluster signature={signature}')
+        # print(f'[Check] recruit cluster signature={signature}')
         # Center on that item
         # self.DistanceLayerCollections[f'cluster{signature}'].weight.data = center
         self.Distance.weight.data[signature, :] = center
@@ -147,7 +147,7 @@ class ClusteringModel(nn.Module):
        
         # pass on competed clusters actvs for soft wta.
         clusters_actv_softwta, _ = self.SoftWTA(clusters_actv_competed)
-        print(f'clusters_actv : {clusters_actv}, clusters_actv_competed : {clusters_actv_competed}, clusters_actv_softwta : {clusters_actv_softwta}')
+        # print(f'clusters_actv : {clusters_actv}, clusters_actv_competed : {clusters_actv_competed}, clusters_actv_softwta : {clusters_actv_softwta}')
 
         # produce output probabilities
         y_pred = self.ClsLayer(clusters_actv_softwta)
@@ -158,7 +158,7 @@ class ClusteringModel(nn.Module):
         Compute support.
         """
         totalSupport = 0
-        print(f'[Check] Evaluating totalSupport')
+        # print(f'[Check] Evaluating totalSupport')
         assoc_weights = self.ClsLayer.weight.data
         totalSupport = 0
         # NOTE: nonzero_clusters_indices is 2D (batch, actv)
@@ -170,7 +170,7 @@ class ClusteringModel(nn.Module):
             totalSupport += support * single_cluster_actv
 
         totalSupport = totalSupport / torch.sum(clusters_actv_softwta)
-        print(f'[Check] totalSupport = {totalSupport}')
+        # print(f'[Check] totalSupport = {totalSupport}')
         return totalSupport
 
     def forward(self, inp, epoch, i, signature, y_true):
