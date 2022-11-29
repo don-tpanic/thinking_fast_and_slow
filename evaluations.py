@@ -58,6 +58,9 @@ def examine_lc(config_version,
             config_ = config['slow_config']
             lr_dnn = config_['lr_dnn']
             axes[subplot_idx].set_title(f'{model_type}, lr dnn: {lr_dnn:.2f}')
+        
+        else:
+            axes[subplot_idx].set_title(f'{model_type}')
     
     plt.tight_layout()
     plt.savefig(f'results/{config_version}/lc.png')
@@ -161,7 +164,7 @@ def examine_recruited_clusters_n_attn(config_version, canonical_runs_only=True):
 
 
 if __name__ == '__main__':
-    config_version = 'config23'
+    config_version = 'config3'
     examine_lc(config_version)
     # examine_loss(config_version)
     # examine_recruited_clusters_n_attn(config_version)
