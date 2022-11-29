@@ -32,6 +32,8 @@ class FastSlow(nn.Module):
 
         if config['loss_fn'] == 'bcelogits':
             self.loss_fn = nn.BCEWithLogitsLoss()
+        elif config['loss_fn'] == 'crossentropy':
+            self.loss_fn = nn.CrossEntropyLoss()
 
     def forward(self, inp, epoch, i, signature, y_true):
         if self.config['fast'] == 'clustering':
