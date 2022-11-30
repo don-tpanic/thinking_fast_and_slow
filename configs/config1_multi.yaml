@@ -1,0 +1,49 @@
+config_version: config1_multi
+
+# --- overall ---
+optim: sgd
+# loss_fn: bcelogits
+loss_fn: crossentropy
+fast: multiunit_clustering
+slow: dnn
+random_seed: 999
+num_blocks: 32
+num_runs: 50
+
+# --- fast clustering model config ---
+fast_config:
+  r: 1 # 1=city-block, 2=euclid
+  c: .2
+  p: 1
+  phi: 7.  # 5/11
+  beta: 1.
+  lr_nn: 0.0035
+  lr_attn: 3.
+  lr_clusters: .15
+  lr_clusters_group: .25
+  k: 0.005
+  n_units: 10000
+  n_dims: 3
+  n_classes: 2
+  optim: sgd
+  # loss_fn: bcelogits
+  loss_fn: crossentropy
+  noise: None
+  lesion: None
+  attn_type: dimensional_local
+
+# --- dnn model config ---
+slow_config:
+  act_func: relu
+  lr_dnn: 0.0075
+  n_units: 25   # hidden layer size
+  mom: 0.
+  dropout: 0
+  networks_depth: 3
+  input_size: 3
+  output_size: 2
+  bias: True
+  n_classes: 2
+  optim: sgd
+  # loss_fn: bcelogits
+  loss_fn: crossentropy
