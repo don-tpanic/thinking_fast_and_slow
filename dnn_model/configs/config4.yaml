@@ -1,0 +1,14 @@
+config_version: config4
+act_func: relu
+lr_dnn: 1.5
+n_units: 25   # hidden layer size
+mom: 0.3
+dropout: 0
+networks_depth: 3
+n_sims: 50
+n_epochs: 350
+input_size: 3
+output_size: 2
+random_seed: 999
+optim: sgd
+loss_fn: bcelogits

@@ -71,7 +71,7 @@ if __name__ == '__main__':
     start_time = time.time()
     num_processes = 6
     problem_types = [1, 2, 3, 4, 5, 6]
-    config_version = 'config1'
+    config_version = 'config5'
     
     # train_model(problem_type=1, config_version=config_version)
     import multiprocessing

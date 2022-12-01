@@ -59,4 +59,4 @@ def examine_lc(config_version,
             
 
 if __name__ == '__main__':
-    examine_lc(config_version='config1')
+    examine_lc(config_version='config5')
