@@ -1,0 +1,44 @@
+config_version: config3
+optim: sgd
+loss_fn: bcelogits
+fast: clustering
+slow: dnn
+random_seed: 999
+num_blocks: 350
+num_runs: 50
+fast_config:
+  max_num_clusters: 8
+  in_features: 3
+  out_features: 3
+  Phi: 10
+  asso_lr_multiplier: 1.0
+  high_attn_constraint: sumtoone
+  high_attn_lr_multiplier: 1.0
+  high_attn_regularizer: entropy
+  high_attn_reg_strength: 0.0
+  beta: 3.0
+  center_lr_multiplier: 1.0
+  from_logits: true
+  lr_clustering: 0.001
+  num_clusters: 8
+  q: 1
+  r: 2
+  specificity: 0.25
+  temp_competition: equivalent
+  temp_softwta: 0.012
+  thr: -0.4
+  optim: sgd
+  loss_fn: bcelogits
+slow_config:
+  act_func: relu
+  lr_dnn: 3
+  n_units: 25
+  mom: 0.0
+  dropout: 0
+  networks_depth: 3
+  input_size: 3
+  output_size: 2
+  bias: true
+  n_classes: 2
+  optim: sgd
+  loss_fn: bcelogits
