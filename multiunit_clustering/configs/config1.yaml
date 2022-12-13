@@ -1,0 +1,24 @@
+config_version: config1
+r: 1 # 1=city-block, 2=euclid
+c: .2
+p: 1
+phi: 7.  # 5/11
+beta: 1.
+lr_nn: 0.0035
+lr_attn: 3.
+# lr_attn: .2
+lr_clusters: .15
+lr_clusters_group: .25
+k: 0.005
+n_units: 10000
+n_dims: 3
+n_classes: 2
+noise: None
+lesion: None
+
+random_seed: 999
+num_blocks: 32
+num_runs: 50
+optim: sgd
+loss_fn: crossentropy
+attn_type: dimensional_local
