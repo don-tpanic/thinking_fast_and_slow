@@ -32,6 +32,8 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'  # macbook
 
 # %% stim distribution
 
+np.random.seed(111)
+
 # 0-1
 mu1 = [.35, .7]
 var1 = [.009, .006]
