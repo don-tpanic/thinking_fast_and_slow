@@ -105,6 +105,24 @@ def log_results(config_version):
     print(f'[Check] done logging results.')
 
 
+def train_model_multiproc(config_version):
+    config = load_config(config_version)
+    if args.logging:
+        run = wandb.init(
+            project="thinking_fast_and_slow",
+            entity="robandken",
+            config=config,
+            reinit=True,
+        )
+        wandb.run.name = f'{config_version}'
+
+    train_model(config_version)
+    
+    # log results to wandb
+    log_results(config_version)
+    run.finish()
+
+
 if __name__ == '__main__':
     start_time = time.time()
 
@@ -119,7 +137,6 @@ if __name__ == '__main__':
     if args.config:
         config_version = args.config
         config = load_config(config_version)
-
         if args.logging:
             wandb.init(
                 project="thinking_fast_and_slow",
@@ -135,20 +152,20 @@ if __name__ == '__main__':
         if args.logging:
             log_results(config_version)
 
-    # # run a range of configs (hparams sweep)
-    # elif args.begin and args.end:
-    #     # one process is one config over 6 types
-    #     config_versions = [f'config{i}' for i in range(args.begin, args.end+1)]
-    #     num_processes = len(config_versions)
-    #     with multiprocessing.Pool(num_processes) as pool:
-    #         for config_version in config_versions:
-    #             results = pool.apply_async(
-    #                     train_model_across_types, 
-    #                     args=[config_version]
-    #                 )
+    # run a range of configs (hparams sweep)
+    elif args.begin and args.end:
+        # one process is one config over 6 types
+        config_versions = [f'config_n{i}' for i in range(args.begin, args.end+1)]
+        num_processes = len(config_versions)
+        with multiprocessing.Pool(num_processes) as pool:
+            for config_version in config_versions:
+                results = pool.apply_async(
+                        train_model_multiproc, 
+                        args=[config_version]
+                    )
 
-    #         pool.close()
-    #         pool.join()
+            pool.close()
+            pool.join()
         
     duration = time.time() - start_time
     print(f'duration = {duration}s')
