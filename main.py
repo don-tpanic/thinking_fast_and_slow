@@ -9,7 +9,7 @@ from torch import nn
 import models
 from train import fit
 from evaluations import examine_lc
-from utils import load_config, load_data, str2bool
+from utils import load_config, str2bool, load_new_stimuli
 torch.autograd.set_detect_anomaly(True)
 
 import wandb
@@ -18,7 +18,7 @@ import wandb
 Main execution script.
 """
 
-def train_model(problem_type, config_version):
+def train_model(config_version):
     config = load_config(config_version)
     print(f'[Check] config: {config_version}')
     random_seed=config['random_seed']
@@ -37,12 +37,12 @@ def train_model(problem_type, config_version):
     loss_total = np.zeros(num_blocks)
     ct = 0
     for run in range(num_runs):
-        print(f'= problem_type {problem_type} Run {run} ========================================')
-        
+
         model = models.FastSlow(config=config)
 
         for epoch in range(num_blocks):
-            dataset = load_data(problem_type)
+            print(f'[Check] run {run}, epoch {epoch}')
+            dataset = load_new_stimuli()
             shuffled_indices = np.random.permutation(len(dataset))
             shuffled_dataset = dataset[shuffled_indices]
 
@@ -76,7 +76,7 @@ def train_model(problem_type, config_version):
         torch.save(
             ckpt_data, 
             os.path.join(results_path,
-            f'type{problem_type}_run{run}.pth.tar')
+            f'run{run}.pth.tar')
         )
         del model
     
@@ -87,31 +87,12 @@ def train_model(problem_type, config_version):
     loss_fast = loss_fast / (num_runs * len(dataset))
     loss_slow = loss_slow / (num_runs * len(dataset))
     loss_total = loss_total / (num_runs * len(dataset))
-    np.save(os.path.join(results_path, f'lc_fast_type{problem_type}.npy'), lc_fast)
-    np.save(os.path.join(results_path, f'lc_slow_type{problem_type}.npy'), lc_slow)
-    np.save(os.path.join(results_path, f'lc_total_type{problem_type}.npy'), lc_total)
-    np.save(os.path.join(results_path, f'loss_fast_type{problem_type}.npy'), loss_fast)
-    np.save(os.path.join(results_path, f'loss_slow_type{problem_type}.npy'), loss_slow)
-    np.save(os.path.join(results_path, f'loss_total_type{problem_type}.npy'), loss_total)
-
-
-def train_model_across_types(config_version):
-    config = load_config(config_version)
-    if args.logging:
-        run = wandb.init(
-            project="thinking_fast_and_slow",
-            entity="robandken",
-            config=config,
-            reinit=True,
-        )
-        wandb.run.name = f'{config_version}'
-
-    for problem_type in problem_types:
-        train_model(problem_type, config_version)
-    
-    # log results to wandb
-    log_results(config_version)
-    run.finish()
+    np.save(os.path.join(results_path, f'lc_fast.npy'), lc_fast)
+    np.save(os.path.join(results_path, f'lc_slow.npy'), lc_slow)
+    np.save(os.path.join(results_path, f'lc_total.npy'), lc_total)
+    np.save(os.path.join(results_path, f'loss_fast.npy'), loss_fast)
+    np.save(os.path.join(results_path, f'loss_slow.npy'), loss_slow)
+    np.save(os.path.join(results_path, f'loss_total.npy'), loss_total)
 
 
 def log_results(config_version):
@@ -124,9 +105,26 @@ def log_results(config_version):
     print(f'[Check] done logging results.')
 
 
+def train_model_multiproc(config_version):
+    config = load_config(config_version)
+    if args.logging:
+        run = wandb.init(
+            project="thinking_fast_and_slow",
+            entity="robandken",
+            config=config,
+            reinit=True,
+        )
+        wandb.run.name = f'{config_version}'
+
+    train_model(config_version)
+    
+    # log results to wandb
+    log_results(config_version)
+    run.finish()
+
+
 if __name__ == '__main__':
     start_time = time.time()
-    problem_types = [1, 2, 3, 4, 5, 6]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--logging', dest='logging', default=True, type=str2bool)
@@ -139,7 +137,6 @@ if __name__ == '__main__':
     if args.config:
         config_version = args.config
         config = load_config(config_version)
-
         if args.logging:
             wandb.init(
                 project="thinking_fast_and_slow",
@@ -149,17 +146,7 @@ if __name__ == '__main__':
             )
             wandb.run.name = f'{config_version}'
 
-        import multiprocessing
-        num_processes = len(problem_types)
-        with multiprocessing.Pool(num_processes) as pool:
-            for problem_type in problem_types:
-                results = pool.apply_async(
-                        train_model, 
-                        args=[problem_type, config_version]
-                    )
-            print(results.get())
-            pool.close()
-            pool.join()
+        train_model(config_version)
         
         # log results to wandb
         if args.logging:
@@ -168,12 +155,12 @@ if __name__ == '__main__':
     # run a range of configs (hparams sweep)
     elif args.begin and args.end:
         # one process is one config over 6 types
-        config_versions = [f'config{i}' for i in range(args.begin, args.end+1)]
+        config_versions = [f'config_n{i}' for i in range(args.begin, args.end+1)]
         num_processes = len(config_versions)
         with multiprocessing.Pool(num_processes) as pool:
             for config_version in config_versions:
                 results = pool.apply_async(
-                        train_model_across_types, 
+                        train_model_multiproc, 
                         args=[config_version]
                     )
 
