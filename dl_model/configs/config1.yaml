@@ -1,6 +1,6 @@
 config_version: config1
 num_blocks: 10
-num_runs: 1
+num_runs: 10
 optim: sgd
 loss_fn: bcelogits
 model_type: clustering

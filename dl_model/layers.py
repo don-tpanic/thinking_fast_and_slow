@@ -50,6 +50,14 @@ class MultiVariateAttention(nn.Module):
     def forward(self, input: Tensor) -> Tensor:
         """
         """
+        # diagonal of self.attn.data cannot be less than 1e-6
+        # first extract the diagonal
+        diag = torch.diagonal(self.attn, dim1=-2, dim2=-1)
+        # second clip min=1e-6
+        diag = torch.clamp(diag, min=1e-6)
+        # third update the diagonal
+        self.attn.data = torch.diag_embed(diag)
+
         mvn1 = torch.distributions.MultivariateNormal(
             self.units, 
             scale_tril=torch.tril(self.attn)
