@@ -7,6 +7,7 @@ random_seed: 999
 num_blocks: 350
 num_runs: 10
 fast_config:
+  attn_weighting: 0.02
   optim: sgd
   loss_fn: bcelogits
   model_type: clustering

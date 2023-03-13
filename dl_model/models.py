@@ -20,6 +20,7 @@ class DistrLearner(nn.Module):
         self.nn_sizes = [config['max_nunits'], 2]  # only association ws
         self.unit_recruit_mech = config['unit_recruit_type']
         self.Phi = config['Phi']
+        self.attn_weighting = config['attn_weighting']
         # self.softmax = nn.Softmax(dim=0)
         # self.attn_trace = []
         # self.units_pos_trace = []
@@ -31,6 +32,7 @@ class DistrLearner(nn.Module):
         self.MultiVariateAttn = layers.MultiVariateAttention(
             n_dims=self.n_dims,
             max_nunits=self.max_nunits,
+            attn_weighting=self.attn_weighting,
         )
 
         self.MaskNonRecruit = layers.Mask(

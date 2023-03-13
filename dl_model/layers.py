@@ -16,7 +16,7 @@ class MultiVariateAttention(nn.Module):
     units: Tensor
     attn: Tensor
 
-    def __init__(self, n_dims, max_nunits, bias: bool = True,
+    def __init__(self, n_dims, max_nunits, attn_weighting=0.02, bias: bool = True,
                  device=None, dtype=None, 
                  trainable: bool = True,
                  ) -> None:
@@ -29,11 +29,12 @@ class MultiVariateAttention(nn.Module):
         # New stuff
         self.n_dims = n_dims
         self.max_nunits = max_nunits
+        self.attn_weighting = attn_weighting
 
         # self.units = torch.nn.Parameter(torch.zeros([self.max_nunits, self.n_dims], dtype=torch.float))
         self.units = Parameter(torch.zeros([self.max_nunits, self.n_dims], dtype=torch.float))
 
-        attn = torch.linalg.cholesky(torch.eye(self.n_dims) * .02)  # .05
+        attn = torch.linalg.cholesky(torch.eye(self.n_dims) * attn_weighting)  # .05
         # self.attn = torch.nn.Parameter(attn.repeat(self.max_nunits, 1, 1))
         self.attn = Parameter(attn.repeat(self.max_nunits, 1, 1))
         # ----------------
