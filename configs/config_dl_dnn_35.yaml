@@ -1,0 +1,36 @@
+config_version: config_dl_dnn_35
+optim: sgd
+loss_fn: bcelogits
+fast: distr_learner
+slow: dnn
+random_seed: 999
+num_blocks: 350
+num_runs: 10
+fast_config:
+  attn_weighting: 0.05
+  optim: sgd
+  loss_fn: bcelogits
+  model_type: clustering
+  max_nunits: 50
+  n_dims: 2
+  unit_recruit_type: feedback
+  Phi: 1
+  from_logits: true
+  lr_attn: 0.002
+  lr_nn: 0.0005
+  lr_units: 0.002
+  momentum: 0
+  random_seed: 999
+slow_config:
+  act_func: relu
+  lr_dnn: 1.5
+  n_units: 25
+  mom: 0.0
+  dropout: 0
+  networks_depth: 3
+  input_size: 2
+  output_size: 2
+  bias: true
+  n_classes: 2
+  optim: sgd
+  loss_fn: bcelogits

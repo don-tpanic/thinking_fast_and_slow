@@ -19,6 +19,9 @@ Main execution script.
 """
 
 def train_model(config_version):
+
+    torch.set_num_threads(1)
+
     config = load_config(config_version)
     print(f'[Check] config: {config_version}')
     random_seed=config['random_seed']
@@ -156,7 +159,7 @@ if __name__ == '__main__':
     elif args.begin and args.end:
         # one process is one config
         config_versions = [f'config_dl_dnn_{i}' for i in range(args.begin, args.end+1)]
-        num_processes = len(config_versions)
+        num_processes = 60
         with multiprocessing.Pool(num_processes) as pool:
             for config_version in config_versions:
                 results = pool.apply_async(
