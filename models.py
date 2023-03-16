@@ -4,7 +4,7 @@ from torch import nn
 from clustering_model.models import ClusteringModel 
 from dnn_model.models import NeuralNetwork
 from multiunit_clustering.models import MultiUnitCluster
-from dl_model.models import DistrLearner
+from dl_model.models import DistrLearner, DistrLearnerMU
 
 
 class FastSlow(nn.Module):
@@ -22,6 +22,9 @@ class FastSlow(nn.Module):
 
         elif config['fast'] == 'distr_learner':
             self.FastModel = DistrLearner(config=config['fast_config'])
+        
+        elif config['fast'] == 'distr_learner_mu':
+            self.FastModel = DistrLearnerMU(config=config['fast_config'])
 
         if config['slow'] == 'dnn':
             self.SlowModel = NeuralNetwork(config=config['slow_config'])
@@ -48,7 +51,7 @@ class FastSlow(nn.Module):
             y_logits_fast, act, win_ind = self.FastModel(inp, epoch, i, y_true)
             extra_stuff = (act, win_ind)
         
-        elif self.config['fast'] == 'distr_learner':
+        elif self.config['fast'] in ['distr_learner', 'distr_learner_mu']:
             y_logits_fast = self.FastModel(inp, epoch, i, signature, y_true)
             extra_stuff = ()
 
