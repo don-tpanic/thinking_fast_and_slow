@@ -91,35 +91,35 @@ model_type = 'cluster'
 # trials, etc.
 n_epochs = 10
 
-# distribution learner
-unit_recruit_type = 'feedback'
-model_info = {
-    'model_type': model_type,
-    'max_nunits': 50,  # max nclusters
-    'n_dims': inputs.shape[1],
-    'unit_recruit_type': unit_recruit_type,
-    }
-
-model_distr = DistrLearner(model_info)
-model_distr, epoch_acc, trial_acc, epoch_ptarget_distr, trial_ptarget, trial_p = (
-    train_distr(model_distr, inputs, output, n_epochs, shuffle=True)
-    )
-
-
-# # distribution learner MU
+# # distribution learner
 # unit_recruit_type = 'feedback'
 # model_info = {
 #     'model_type': model_type,
-#     'max_nunits': 500,  # max nclusters
+#     'max_nunits': 50,  # max nclusters
 #     'n_dims': inputs.shape[1],
 #     'unit_recruit_type': unit_recruit_type,
-#     'k': .01
 #     }
 
-# model_distr_mu = DistrLearnerMU(model_info)
-# model_distr_mu, epoch_acc, trial_acc, epoch_ptarget_distr, trial_ptarget, trial_p = (
-#     train_distr_mu(model_distr_mu, inputs, output, n_epochs, shuffle=shuffle)
+# model_distr = DistrLearner(model_info)
+# model_distr, epoch_acc, trial_acc, epoch_ptarget_distr, trial_ptarget, trial_p = (
+#     train_distr(model_distr, inputs, output, n_epochs, shuffle=True)
 #     )
+
+
+# distribution learner MU
+unit_recruit_type = 'feedback'
+model_info = {
+    'model_type': model_type,
+    'max_nunits': 500,  # max nclusters
+    'n_dims': inputs.shape[1],
+    'unit_recruit_type': unit_recruit_type,
+    'k': .01
+    }
+
+model_distr_mu = DistrLearnerMU(model_info)
+model_distr_mu, epoch_acc, trial_acc, epoch_ptarget_distr, trial_ptarget, trial_p = (
+    train_distr_mu(model_distr_mu, inputs, output, n_epochs, shuffle=True)
+    )
 
 # # distribution learner wta
 # unit_recruit_type = 'feedback'

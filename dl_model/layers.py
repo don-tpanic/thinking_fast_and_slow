@@ -118,7 +118,7 @@ class Mask(nn.Module):
         Initialization of mask weights to zeros because no clusters recruited yet.
         """
         # nn.init.constant_(self.active_units, 0)  
-        NotImplementedError()
+        raise NotImplementedError()
 
     def forward(self, input: Tensor) -> Tensor:
         """

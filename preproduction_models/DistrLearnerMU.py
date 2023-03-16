@@ -36,16 +36,11 @@ class DistrLearnerMU(nn.Module):
             self.params = params
         else:  # defaults
             self.params = {
-                'r': 2,  # 1=city-block, 2=euclid
-                'c': 6,
-                'p': 1,  # p=1 exp, p=2 gauss
-                # 'beta': 2,  # if cluster inhibition
                 'phi': 1,  # .1 # response parameter, non-negative
-                'a': .01,  # recruiting by loss thresh - TODO
                 'lr_attn': .002,  # .001
                 'lr_nn': .025,  # .01
-                'lr_units': .05, # .005,  # .01
-                'k': model_info['k']
+                'lr_units': .002, #.05, # .005,  # .01
+                'k': .01
                 }
 
         # mask for active clusters
@@ -54,18 +49,18 @@ class DistrLearnerMU(nn.Module):
         # set up by model type
         # if self.model_type == 'cluster':
         self.units = torch.nn.Parameter(
-            torch.rand([self.max_nunits, self.n_dims], dtype=torch.float))
+            torch.zeros([self.max_nunits, self.n_dims], dtype=torch.float))
 
         # elif self.model_type[0:15] == 'cluster_kohonen':
         #     self.units = torch.rand([self.max_nunits, self.n_dims],
         #                             dtype=torch.float)
 
         # mask for NN (cluster acts in->output weights)
-        self.mask1 = torch.zeros([self.nn_sizes[1], self.max_nunits],
-                                 dtype=torch.bool)
+        # self.mask1 = torch.zeros([self.nn_sizes[1], self.max_nunits],
+        #                          dtype=torch.bool)
 
         # use cholesky decomposed covmat to learn, so start with it too
-        attn = torch.cholesky(torch.eye(self.n_dims) * .02)  # .05
+        attn = torch.linalg.cholesky(torch.eye(self.n_dims) * .02)  # .05
         self.attn = torch.nn.Parameter(attn.repeat(self.max_nunits, 1, 1))
 
         self.fc1 = nn.Linear(self.max_nunits, self.nn_sizes[1], bias=False)
@@ -92,27 +87,21 @@ class DistrLearnerMU(nn.Module):
         # convert to response probability
         pr = self.softmax(self.params['phi'] * out)
 
-        # save cluster pos and acts, attn ws, assoc ws
-        self.units_pos_trace.append(self.units.detach().clone())
-        self.units_act_trace.append(units_output.detach().clone())
-        self.attn_trace.append(self.attn.detach().clone())
-        self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        self.fc1_act_trace.append(out.detach().clone())
+        out = self.params['phi'] * out
 
         return out, pr
 
 def train_distr_mu(model, inputs, output, n_epochs, shuffle=False):
 
     # buid up model params
-    p_fc1 = {'params': model.fc1.parameters()}
+    p_fc1 = {'params': model.fc1.parameters(), 'lr': model.params['lr_nn']}
     p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
     p_clusters = {'params': [model.units],
                   'lr': model.params['lr_units']}
     params = [p_fc1, p_clusters, p_attn]
 
-    criterion = nn.CrossEntropyLoss()  # loss
-
-    optimizer = optim.SGD(params, lr=model.params['lr_nn'], momentum=0.05)
+    criterion = torch.nn.BCEWithLogitsLoss()
+    optimizer = optim.SGD(params, momentum=0)
 
     # save accuracy
     itrl = 0
@@ -122,17 +111,24 @@ def train_distr_mu(model, inputs, output, n_epochs, shuffle=False):
     trial_p = torch.zeros([len(inputs) * n_epochs, len(torch.unique(output))])
     epoch_ptarget = torch.zeros(n_epochs)
     
-    model.train()
-    # torch.manual_seed(5)
+    lc = np.zeros(n_epochs)
+    ct = 0
+    
+    # model.train()
+    np.random.seed(999)
     for epoch in range(n_epochs):
         if shuffle:
-            shuffle_ind = torch.randperm(len(inputs))
-            inputs_ = inputs[shuffle_ind]
-            output_ = output[shuffle_ind]
+            # shuffle_ind = torch.randperm(len(inputs))
+            # inputs_ = inputs[shuffle_ind]
+            # output_ = output[shuffle_ind]
+            shuffled_indices = np.random.permutation(len(inputs))
+            inputs_ = inputs[shuffled_indices]
+            output_ = output[shuffled_indices]
         else:
             inputs_ = inputs
             output_ = output
 
+        i = 0
         for x, target in zip(inputs_, output_):
             # testing
             # x=inputs_[itrl]
@@ -141,11 +137,16 @@ def train_distr_mu(model, inputs, output, n_epochs, shuffle=False):
             # learn
             optimizer.zero_grad()
             out, pr = model.forward(x)
-            loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+            if target == 0:
+                t = torch.tensor([1, 0], dtype=torch.float)
+            else:
+                t = torch.tensor([0, 1], dtype=torch.float)
+            loss = criterion(out.unsqueeze(0), t.unsqueeze(0))
+            i += 1
             loss.backward()
             # zero out gradient for masked connections
-            with torch.no_grad():
-                model.fc1.weight.grad.mul_(model.mask1)
+            # with torch.no_grad():
+            #     model.fc1.weight.grad.mul_(model.mask1)
 
             # Recruitment
             # if incorrect, recruit
@@ -167,9 +168,16 @@ def train_distr_mu(model, inputs, output, n_epochs, shuffle=False):
             trial_ptarget[itrl] = pr[target]
             trial_p[itrl] = pr
 
+            item_proberror = 1. - torch.max(pr * t)
+            lc[epoch] += item_proberror
+            # if epoch == 0:
+            #     print('item_proberror', item_proberror, 'x', x, 'target', target)
+            # else:
+            #     exit()
+            ct += 1
+
             # Recruit cluster, and update model
             if recruit and any(model.active_units == 0):  # in case recruit too many
-
                 # select closest k inactive units
                 # - cant select mispred units only as not WTA, all involved
                 mvn1 = torch.distributions.MultivariateNormal(
@@ -186,20 +194,26 @@ def train_distr_mu(model, inputs, output, n_epochs, shuffle=False):
 
                 # recruit n_units
                 model.active_units[recruit_ind] = True  # set ws to active
-                # with torch.no_grad():
-                #     model.units[recruit_ind] = x  # place at curr stim
-                model.mask1[:, recruit_ind] = True  # new clus weights
-                model.recruit_unit_trl.append(itrl)
+                with torch.no_grad():
+                    model.units[recruit_ind] = x  # place at curr stim
+                # model.mask1[:, recruit_ind] = True  # new clus weights
+                # model.recruit_unit_trl.append(itrl)
 
 
                 # go through update again after cluster added
                 optimizer.zero_grad()
                 out, pr = model.forward(x)
-                loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+                if target == 0:
+                    t = torch.tensor([1, 0], dtype=torch.float)
+                else:
+                    t = torch.tensor([0, 1], dtype=torch.float) 
+                loss = criterion(out.unsqueeze(0), t.unsqueeze(0))
                 loss.backward()
-                with torch.no_grad():
-                    model.fc1.weight.grad.mul_(model.mask1)
+                # with torch.no_grad():
+                #     model.fc1.weight.grad.mul_(model.mask1)
 
+                # print(loss)
+                # exit()
                 optimizer.step()
 
             itrl += 1
@@ -208,6 +222,8 @@ def train_distr_mu(model, inputs, output, n_epochs, shuffle=False):
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
         epoch_ptarget[epoch] = trial_ptarget[itrl-len(inputs):itrl].mean()
 
+    lc = lc / (1 * len(inputs_))
+    print(lc)
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget, trial_p
 
 

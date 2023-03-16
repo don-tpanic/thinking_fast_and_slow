@@ -28,7 +28,8 @@ def train_model(config_version):
     ct = 0
     for run in range(num_runs):
         
-        model = models.DistrLearner(config=config)
+        # model = models.DistrLearner(config=config)
+        model = models.DistrLearnerMU(config=config)
 
         for epoch in range(num_blocks):
             # load and shuffle data
@@ -49,6 +50,10 @@ def train_model(config_version):
                     epoch=epoch, 
                     i=i,
                 )
+                # if epoch == 0:
+                #     print('item_proberror', item_proberror, 'x', x, 'y_true', y_true)
+                # else:
+                #     exit()
                 lc[epoch] += item_proberror
                 ct += 1
         
@@ -70,7 +75,7 @@ def train_model(config_version):
 
 if __name__ == '__main__':
     start_time = time.time()
-    config_version = 'config1'
+    config_version = 'config_dlMU_1'
 
     train_model(config_version=config_version)
 
