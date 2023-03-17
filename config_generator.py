@@ -41,7 +41,7 @@ def generate_configs(hparam_streams, config_counter, template_config):
                 template['fast_config']['lr_nn'] = fast_param_key1
                 template['fast_config']['attn_weighting'] = fast_param_key2
                 template['slow_config']['lr_dnn'] = slow_param_key1
-                config_version = f'config_dl_dnn_{config_counter}'
+                config_version = f'config_dlMU_dnn_{config_counter}'
                 template['config_version'] = f'{config_version}'
                 config_counter += 1
                 with open(f'configs/{config_version}.yaml', 'w') as f:
@@ -68,5 +68,5 @@ if __name__ == '__main__':
     generate_configs(
         hparam_streams=hparam_streams, 
         config_counter=2, 
-        template_config='config_dl_dnn_1'
+        template_config='config_dlMU_dnn_1'
     )
