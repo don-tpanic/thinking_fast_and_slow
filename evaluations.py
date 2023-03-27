@@ -21,15 +21,15 @@ def examine_lc(config_version):
     model_types_and_markerStyles = {'total': 'o', 'fast': '*', 'slow': 'x'}
     fig, ax = plt.subplots(1, 1)
 
-    for model_type in model_types_and_markerStyles.keys():
+    for model_type in model_types_and_markerStyles:
 
         lc_file = f'results/{config_version}/lc_{model_type}.npy'
         lc = np.load(lc_file)[:num_blocks]
 
-        ax.scatter(
+        ax.plot(
             range(lc.shape[0]), 
             lc, 
-            marker=model_types_and_markerStyles[model_type],
+            # marker=model_types_and_markerStyles[model_type],
             label=model_type,
             alpha=0.5,
         )
