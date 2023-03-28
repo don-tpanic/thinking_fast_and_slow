@@ -37,42 +37,46 @@ def generate_configs(hparam_streams, config_counter, template_config):
 
     for fast_param_key1 in fast_configs['lr_nn']:
         for fast_param_key2 in fast_configs['attn_weighting']:
-            for slow_param_key1 in slow_configs['lr_dnn']:
-                for slow_param_key2 in slow_configs['n_units']:
-                    template['fast_config']['lr_nn'] = fast_param_key1
-                    template['fast_config']['attn_weighting'] = fast_param_key2
-                    template['slow_config']['lr_dnn'] = slow_param_key1
-                    template['slow_config']['n_units'] = slow_param_key2
-                    config_version = f'config_dlMU_dnn_{config_counter}'
-                    template['config_version'] = f'{config_version}'
-                    config_counter += 1
-                    with open(f'configs/{config_version}.yaml', 'w') as f:
-                        yaml.dump(template, f, sort_keys=False)
-                    print(
-                        f'{config_version}', 
-                        template['fast_config']['lr_nn'], 
-                        template['fast_config']['attn_weighting'],
-                        template['slow_config']['lr_dnn'],
-                        template['slow_config']['n_units']
-                    )
+            for fast_param_key3 in fast_configs['max_nunits']:
+                for slow_param_key1 in slow_configs['lr_dnn']:
+                    for slow_param_key2 in slow_configs['n_units']:
+                        template['fast_config']['lr_nn'] = fast_param_key1
+                        template['fast_config']['attn_weighting'] = fast_param_key2
+                        template['fast_config']['max_nunits'] = fast_param_key3
+                        template['slow_config']['lr_dnn'] = slow_param_key1
+                        template['slow_config']['n_units'] = slow_param_key2
+                        config_version = f'config_dlMU_dnn_{config_counter}'
+                        template['config_version'] = f'{config_version}'
+                        config_counter += 1
+                        with open(f'configs/{config_version}.yaml', 'w') as f:
+                            yaml.dump(template, f, sort_keys=False)
+                        print(
+                            f'{config_version}', 
+                            template['fast_config']['lr_nn'], 
+                            template['fast_config']['attn_weighting'],
+                            template['fast_config']['max_nunits'],
+                            template['slow_config']['lr_dnn'],
+                            template['slow_config']['n_units']
+                        )
 
 
 if __name__ == '__main__':
     hparam_streams = {
         'fast_config': \
             {
-                'lr_nn': [0.001],
-                'attn_weighting': [0.05]
+                'lr_nn': [0.00075, 0.001, 0.0015],
+                'attn_weighting': [0.05],
+                'max_nunits': [250, 500, 750]
             }, 
         'slow_config': \
             {
-                'lr_dnn': [0.1],
-                'n_units': [16, 32, 64, 128, 256, 512, 1024]
+                'lr_dnn': [0.05, 0.075, 0.1],
+                'n_units': [16, 64, 128]
             }
     }
     
     generate_configs(
         hparam_streams=hparam_streams, 
-        config_counter=127,  # should be the larget existing config+1. 
+        config_counter=134,  # should be the larget existing config+1. 
         template_config='config_dlMU_dnn_1'
     )
