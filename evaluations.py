@@ -17,26 +17,27 @@ def examine_lc(config_version):
     config = load_config(config_version)
     num_runs = config['num_runs']
     num_blocks = config['num_blocks']
-    model_types = ['total', 'fast', 'slow']
-    # colors = ['blue', 'orange', 'black', 'green', 'red', 'cyan']
-    fig, axes = plt.subplots(3, 1)
+    # model_types = ['total', 'fast', 'slow']
+    model_types_and_markerStyles = {'total': 'o', 'fast': '*', 'slow': 'x'}
+    fig, ax = plt.subplots(1, 1)
 
-    for subplot_idx in range(len(model_types)):
-        model_type = model_types[subplot_idx]
+    for model_type in model_types_and_markerStyles:
 
         lc_file = f'results/{config_version}/lc_{model_type}.npy'
         lc = np.load(lc_file)[:num_blocks]
 
-        axes[subplot_idx].errorbar(
+        ax.plot(
             range(lc.shape[0]), 
             lc, 
-            color='b',
-        )        
+            # marker=model_types_and_markerStyles[model_type],
+            label=model_type,
+            alpha=0.5,
+        )
 
-        axes[subplot_idx].set_ylim(0, 0.7)
-        axes[subplot_idx].set_ylabel('proberror')
-        axes[-1].set_xlabel('epochs')
-        axes[-1].legend()
+        ax.set_ylim(-0.01, 0.7)
+        ax.set_ylabel('proberror')
+        ax.set_xlabel('epochs')
+        ax.legend()
 
         if model_type == 'fast':
             config_ = config['fast_config']
@@ -45,17 +46,15 @@ def examine_lc(config_version):
                 lr_attn = config_['lr_clustering'] * config_['high_attn_lr_multiplier']
                 lr_asso = config_['lr_clustering'] * config_['asso_lr_multiplier']
                 lr_center = config_['lr_clustering'] * config_['center_lr_multiplier']
-                axes[subplot_idx].set_title(f'{model_type}, lr attn: {lr_attn:.2f}, asso: {lr_asso:.2f}, center: {lr_center:.2f}')
+                ax.set_title(f'{model_type}, lr attn: {lr_attn:.2f}, asso: {lr_asso:.2f}, center: {lr_center:.2f}')
             elif config['fast'] == 'multiunit_clustering':
-                pass # TODO: what to track during sweep?
+                pass
         
         elif model_type == 'slow':
             config_ = config['slow_config']
             lr_dnn = config_['lr_dnn']
-            axes[subplot_idx].set_title(f'{model_type}, lr dnn: {lr_dnn:.2f}')
-        
-        else:
-            axes[subplot_idx].set_title(f'{model_type}')
+            n_units = config_['n_units']
+            ax.set_title(f'{model_type}, lr dnn: {lr_dnn:.2f}, n_units: {n_units}')
     
     plt.tight_layout()
     plt.savefig(f'results/{config_version}/lc.png')
@@ -88,6 +87,5 @@ def examine_recruited_clusters_n_attn(config_version):
 
 
 if __name__ == '__main__':
-    config_version = 'config_n1'
+    config_version = 'config_dlMU_dnn_57'
     examine_lc(config_version)
-    examine_recruited_clusters_n_attn(config_version)

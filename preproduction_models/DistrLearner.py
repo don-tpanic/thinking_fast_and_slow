@@ -50,16 +50,13 @@ class DistrLearner(nn.Module):
         if params:
             self.params = params
         else:  # defaults
+            print('using default params')
             self.params = {
-                'r': 2,  # 1=city-block, 2=euclid
-                'c': 6,
-                'p': 1,  # p=1 exp, p=2 gauss
                 # 'beta': 2,  # if cluster inhibition
                 'phi': 1,  # .1 # response parameter, non-negative
-                # 'a': .01,  # recruiting by loss thresh - TODO
-                'lr_attn': .002,  # .001
-                'lr_nn': .025,  # .01
-                'lr_units': .005  # .01
+                'lr_attn': 0.002,  # .001
+                'lr_nn': 0.025,  # .01
+                'lr_units': 0.002
                 }
 
         # mask for active clusters
@@ -70,16 +67,8 @@ class DistrLearner(nn.Module):
         self.units = torch.nn.Parameter(
             torch.zeros([self.max_nunits, self.n_dims], dtype=torch.float))
 
-        # elif self.model_type[0:15] == 'cluster_kohonen':
-        #     self.units = torch.zeros([self.max_nunits, self.n_dims],
-        #                                 dtype=torch.float)
-
-        # mask for NN (cluster acts in->output weights)
-        self.mask1 = torch.zeros([self.nn_sizes[1], self.max_nunits],
-                                 dtype=torch.bool)
-
         # use cholesky decomposed covmat to learn, so start with it too
-        attn = torch.cholesky(torch.eye(self.n_dims) * .02)  # .05
+        attn = torch.linalg.cholesky(torch.eye(self.n_dims) * .02)  # .05
         self.attn = torch.nn.Parameter(attn.repeat(self.max_nunits, 1, 1))
 
         self.fc1 = nn.Linear(self.max_nunits, self.nn_sizes[1], bias=False)
@@ -87,6 +76,8 @@ class DistrLearner(nn.Module):
         self.fc1.weight = (
             torch.nn.Parameter(torch.zeros([self.nn_sizes[1],
                                             self.max_nunits])))
+
+
 
     def forward(self, x):
         # compute activations of clusters here. stim x clusterpos x attn
@@ -96,22 +87,20 @@ class DistrLearner(nn.Module):
             self.units, scale_tril=torch.tril(self.attn))
 
         act = torch.exp(mvn1.log_prob(x))
+        # print('x = ', x)
+        # print('self.units = ', self.units[:2, :])
+        # print('act = ', act)
 
         # mask with active clusters
         units_output = act * self.active_units
 
         # association weights
-        out = self.fc1(units_output)
+        out = self.fc1(units_output)   # logits
 
         # convert to response probability
-        pr = self.softmax(self.params['phi'] * out)
+        pr = self.softmax(self.params['phi'] * out)  # softmax( logits * phi )
 
-        # save cluster pos and acts, attn ws, assoc ws
-        self.units_pos_trace.append(self.units.detach().clone())
-        self.units_act_trace.append(units_output.detach().clone())
-        self.attn_trace.append(self.attn.detach().clone())
-        self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        self.fc1_act_trace.append(out.detach().clone())
+        out = self.params['phi'] * out  # logits weighted like in mine
 
         return out, pr
 
@@ -119,15 +108,14 @@ class DistrLearner(nn.Module):
 def train_distr(model, inputs, output, n_epochs, shuffle=False):
 
     # buid up model params
-    p_fc1 = {'params': model.fc1.parameters()}
+    p_fc1 = {'params': model.fc1.parameters(), 'lr': model.params['lr_nn']}
     p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
-    p_clusters = {'params': [model.units],
-                  'lr': model.params['lr_units']}
+    p_clusters = {'params': [model.units], 'lr': model.params['lr_units']}
     params = [p_fc1, p_clusters, p_attn]
 
-    criterion = nn.CrossEntropyLoss()  # loss
+    criterion = torch.nn.BCEWithLogitsLoss()
+    optimizer = optim.SGD(params, momentum=0)
 
-    optimizer = optim.SGD(params, lr=model.params['lr_nn'], momentum=0.05)
 
     # save accuracy
     itrl = 0
@@ -136,31 +124,50 @@ def train_distr(model, inputs, output, n_epochs, shuffle=False):
     trial_ptarget = torch.zeros(len(inputs) * n_epochs)
     trial_p = torch.zeros([len(inputs) * n_epochs, len(torch.unique(output))])
     epoch_ptarget = torch.zeros(n_epochs)
+
+    lc = np.zeros(n_epochs)
+    ct = 0
     
-    model.train()
-    # torch.manual_seed(5)
+    # model.train()
+    # print(inputs)
+    # exit()
+    np.random.seed(999)
     for epoch in range(n_epochs):
         if shuffle:
-            shuffle_ind = torch.randperm(len(inputs))
-            inputs_ = inputs[shuffle_ind]
-            output_ = output[shuffle_ind]
+            # print(f'shuffled data for epoch {epoch}')
+            # shuffle_ind = torch.randperm(len(inputs))
+            # inputs_ = inputs[shuffle_ind]
+            # output_ = output[shuffle_ind]
+            shuffled_indices = np.random.permutation(len(inputs))
+            inputs_ = inputs[shuffled_indices]
+            output_ = output[shuffled_indices]
+            # print(inputs_)
+            # exit()
         else:
             inputs_ = inputs
             output_ = output
 
+        i = 0
         for x, target in zip(inputs_, output_):
-            # testing
-            # x=inputs_[itrl]
-            # target=output_[itrl]
+            # if i > 2:
+            #     continue
+            # print('\n\n\n')
 
             # learn
             optimizer.zero_grad()
             out, pr = model.forward(x)
-            loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+            # loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+            # print(out.unsqueeze(0), target.unsqueeze(0))
+            if target == 0:
+                t = torch.tensor([1, 0], dtype=torch.float)
+            else:
+                t = torch.tensor([0, 1], dtype=torch.float)
+            loss = criterion(out.unsqueeze(0), t.unsqueeze(0))
+            i += 1
             loss.backward()
             # zero out gradient for masked connections
-            with torch.no_grad():
-                model.fc1.weight.grad.mul_(model.mask1)
+            # with torch.no_grad():
+            #     model.fc1.weight.grad.mul_(model.mask1)
 
             # Recruitment
             # if incorrect, recruit
@@ -182,30 +189,55 @@ def train_distr(model, inputs, output, n_epochs, shuffle=False):
             trial_ptarget[itrl] = pr[target]
             trial_p[itrl] = pr
 
+            # if target == 0:
+            #     target = torch.tensor([1, 0], dtype=torch.float)
+            # else:
+            #     target = torch.tensor([0, 1], dtype=torch.float)
+            item_proberror = 1. - torch.max(pr * t)
+            lc[epoch] += item_proberror
+            ct += 1
+
             # Recruit cluster, and update model
             if recruit and any(model.active_units == 0):  # in case recruit too many
+                
                 new_unit_ind = np.nonzero(model.active_units == 0)[0]
+
                 model.active_units[new_unit_ind] = True
                 model.units.data[new_unit_ind] = x  # place at curr stim
-                model.mask1[:, new_unit_ind] = True  # new clus weights
-                model.recruit_unit_trl.append(itrl)
+                # model.mask1[:, new_unit_ind] = True  # new clus weights
+                # model.recruit_unit_trl.append(itrl)
 
                 # go through update again after cluster added
                 optimizer.zero_grad()
                 out, pr = model.forward(x)
-                loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+                if target == 0:
+                    t = torch.tensor([1, 0], dtype=torch.float)
+                else:
+                    t = torch.tensor([0, 1], dtype=torch.float) 
+                loss = criterion(out.unsqueeze(0), t.unsqueeze(0))
+                # print('loss after recruit', loss)
                 loss.backward()
-                with torch.no_grad():
-                    model.fc1.weight.grad.mul_(model.mask1)
+                # with torch.no_grad():
+                #     model.fc1.weight.grad.mul_(model.mask1)
 
                 optimizer.step()
 
+            # print(f'out = ', out, 'y_true = ', t, 'x = ', x)
+            # print('loss = ', loss)
+            # check grads 
+            # for param in model.parameters():
+            #     if param.shape == torch.Size([50, 2, 2]):
+            #         pass
+            #     else:
+            #         print('grads = ', param.grad)
             itrl += 1
 
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
         epoch_ptarget[epoch] = trial_ptarget[itrl-len(inputs):itrl].mean()
 
+    lc = lc / (1 * len(inputs_))
+    print(lc)
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget, trial_p
 
 

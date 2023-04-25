@@ -19,6 +19,9 @@ Main execution script.
 """
 
 def train_model(config_version):
+
+    torch.set_num_threads(1)
+
     config = load_config(config_version)
     print(f'[Check] config: {config_version}')
     random_seed=config['random_seed']
@@ -70,7 +73,7 @@ def train_model(config_version):
                 loss_total[epoch] += loss_value
                 ct += 1
         
-        # save run-level model per problem type
+        # save run-level model task
         ckpt_data = {}
         ckpt_data['state_dict'] = model.state_dict()
         torch.save(
@@ -154,9 +157,9 @@ if __name__ == '__main__':
 
     # run a range of configs (hparams sweep)
     elif args.begin and args.end:
-        # one process is one config over 6 types
-        config_versions = [f'config_n{i}' for i in range(args.begin, args.end+1)]
-        num_processes = len(config_versions)
+        # one process is one config
+        config_versions = [f'config_dlMU_dnn_{i}' for i in range(args.begin, args.end+1)]
+        num_processes = 40
         with multiprocessing.Pool(num_processes) as pool:
             for config_version in config_versions:
                 results = pool.apply_async(
