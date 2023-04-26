@@ -22,10 +22,39 @@ The code base is structured on two levels: dual-stream level (top) and single-st
     ├── results/                # Experiment results (grouped by configs)
 ```
 1. Dual-stream level
-  * `clustering_model`, `multiunit_clustering`, `dnn_model`, `dl_model` are single stream module definitions that the dual stream framework calls. For example, a specific dual-stream model can be the integration of a fast stream module from `multiunit_clustering` and a slow stream module from `dnn_model`. The dual-stream model is assembled in top-level `models.py`.
+  * `clustering_model`, ``dnn_model``, `multiunit_clustering`, `dl_model` are single stream module definitions that the dual stream framework imports. For example, a specific dual-stream model can be the integration of a fast stream module from `multiunit_clustering` and a slow stream module from `dnn_model`. The dual-stream model is assembled in top-level `models.py`, 
+  ```python
+from clustering_model.models import ClusteringModel 
+from dnn_model.models import NeuralNetwork
+from multiunit_clustering.models import MultiUnitCluster
+from dl_model.models import DistrLearner, DistrLearnerMU
+
+
+class FastSlow(nn.Module):
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+
+        # initializing models
+        if config['fast'] == 'clustering':
+            self.FastModel = ClusteringModel(config=config['fast_config'])
+
+        elif config['fast'] == 'multiunit_clustering':
+            self.FastModel = MultiUnitCluster(config=config['fast_config'])
+
+        elif config['fast'] == 'distr_learner':
+            self.FastModel = DistrLearner(config=config['fast_config'])
+        
+        elif config['fast'] == 'distr_learner_mu':
+            self.FastModel = DistrLearnerMU(config=config['fast_config'])
+
+        if config['slow'] == 'dnn':
+            self.SlowModel = NeuralNetwork(config=config['slow_config'])
+  ```
   
 2. Single-stream level
-  * Each single stream module, is itself a standalone code base which can individually fit the learning problems.
+  * Each single stream module, is designed to be in itself a standalone code base which can be taken out of the dual-stream framework and be fit to learning problems as single-stream models. All layer and model definitions are created at this level. 
 
 ### Environment setup
 ```
@@ -38,3 +67,20 @@ conda env create -f environment.yml
 python main.py --logging True --config None --begin 0 --end 999
 ```
 Configs 0-999, each will be run on a single process with model weights and other analytical results saved both locally and synced on weights & biases.
+
+### About experiments logging
+Currently trained model weights are saved only locally. Analytical results such as learning curves are saved both locally and on weights & biases. One can disable w&b syncing by setting the `--logging` flag to `False`. To modify logging location on w&b, one should look into
+```python
+# main.py
+if args.config:
+    config_version = args.config
+    config = load_config(config_version)
+    if args.logging:
+        wandb.init(
+            project="<project-name>",
+            entity="<project-entity>",
+            config=config,
+            reinit=True,
+        )
+        wandb.run.name = f'{config_version}'
+```
