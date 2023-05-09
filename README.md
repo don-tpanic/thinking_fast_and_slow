@@ -1,6 +1,6 @@
 # Thinking Fast and Slow - A novel multi-region computational-modelling framework for conceptual knowledge learning and consolidation (WIP)
 
-### Warning: this code base is part of an active research project which is constantly evolving and subject to refactorying.
+### Warning: this code base is part of an active research project which is constantly evolving and subject to refactoring.
 
 ### Description
 Humans can learn new concepts remarkably quickly. One long-standing question is how conceptual knowledge is learnt and consolidated in the brain. Prior research focused on either early learning, associated with the hippocampus, or semantic knowledge after consolidation, associated with the anterior temporal lobe (ATL), and therefore have not assessed how regions interact during the concept formation process. This project will track concept formation by recording behaviour and brain activity over time and apply a novel multi-region computational-modelling approach to evaluate how the hippocampus and ATL interact to support learning and consolidation of conceptual knowledge.
